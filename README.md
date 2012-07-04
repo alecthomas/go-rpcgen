@@ -4,6 +4,12 @@ This utility generates server and client RPC stubs from a Go interface. These
 stubs eliminate a large amount of the boilerplate code required for creating
 convenient, clean RPC interfaces.
 
+## Installing
+
+The usual `go` command should install `go-rpcgen`:
+
+    $ go get github.com/alecthomas/go-rpcgen
+
 ## Limitations
 
 The source type must:

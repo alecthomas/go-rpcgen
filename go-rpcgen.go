@@ -23,6 +23,7 @@ import (
 	"go/printer"
 	"go/token"
 	"os"
+	"os/exec"
 	"strings"
 	"text/template"
 )
@@ -33,7 +34,8 @@ package {{.Package}}
 
 import (
 	"net/rpc"
-)
+{{range .Imports}}  "{{.}}"
+{{end}})
 {{$type := .Type}}
 type {{.Type}}Service struct {
 	impl {{.Type}}
@@ -43,16 +45,16 @@ func New{{.Type}}Service(impl {{.Type}}) *{{.Type}}Service {
 	return &{{.Type}}Service{impl}
 }
 {{range .Methods}}
-type {{.Name}}Request struct {
+type p{{$type}}{{.Name}}Request struct {
 	{{.Parameters | publicfields}}
 }
 
-type {{.Name}}Response struct {
+type p{{$type}}{{.Name}}Response struct {
 	{{.Results | publicfields}}
 }
 
-func (s *{{$type}}Service) {{.Name}}(request *{{.Name}}Request, response *{{.Name}}Response) (err error) {
-	{{if .Results}}{{.Results | publicrefswithprefix "response."}}{{if .Results}}, {{end}}err = {{end}}s.impl.{{.Name}}({{.Parameters | publicrefswithprefix "request."}})
+func (s *{{$type}}Service) {{.Name}}(request *p{{$type}}{{.Name}}Request, response *p{{$type}}{{.Name}}Response) (err error) {
+	{{.Results | publicrefswithprefix "response."}}{{if .Results}}, {{end}}err = s.impl.{{.Name}}({{.Parameters | publicrefswithprefix "request."}})
 	return
 }
 {{end}}
@@ -66,8 +68,8 @@ func New{{.Type}}Client(client *rpc.Client, service string) *{{.Type}}Client {
 }
 {{range .Methods}}
 func (_c *{{$type}}Client) {{.Name}}({{.Parameters | functionargs}}) ({{.Results | functionargs}}{{if .Results}}, {{end}}err error) {
-	request := &{{.Name}}Request{{"{"}}{{.Parameters | refswithprefix ""}}{{"}"}}
-	response := &{{.Name}}Response{}
+	request := &p{{$type}}{{.Name}}Request{{"{"}}{{.Parameters | refswithprefix ""}}{{"}"}}
+	response := &p{{$type}}{{.Name}}Response{}
 	err = _c.client.Call(_c.service + ".{{.Name}}", request, response)
 	return {{.Results | publicrefswithprefix "response."}}{{if .Results}}, {{end}}err
 }
@@ -99,6 +101,8 @@ Flags:
 var source = flag.String("source", "", "source file to parse RPC interface from")
 var rpcType = flag.String("type", "", "type to generate RPC interface from")
 var target = flag.String("target", "", "target file to write stubs to")
+var importsFlag = flag.String("imports", "", "list of imports to add")
+var packageFlag = flag.String("package", "", "package to export under")
 
 func main() {
 	flag.Usage = func() {
@@ -120,10 +124,18 @@ func main() {
 	if err != nil {
 		fatal("failed to parse %s: %s", *source, err)
 	}
+	var imports []string
+	if *importsFlag != "" {
+		imports = strings.Split(*importsFlag, ",")
+	}
+	if *packageFlag == "" {
+		*packageFlag = f.Name.Name
+	}
 	gen := &RpcGen{
 		Type:    *rpcType,
-		Package: f.Name.Name,
+		Package: *packageFlag,
 		Methods: make([]*Method, 0),
+		Imports: imports,
 		fileset: fileset,
 	}
 	ast.Walk(gen, f)
@@ -146,6 +158,9 @@ func main() {
 		fatal("failed to execute template: %s", err)
 	}
 	fmt.Printf("%s: wrote RPC stubs for %s to %s\n", os.Args[0], *rpcType, *target)
+	if out, err := exec.Command("go", "fmt", *target).CombinedOutput(); err != nil {
+		fatal("failed to run go fmt on %s: %s: %s", *target, err, string(out))
+	}
 }
 
 func fatal(format string, args ...interface{}) {
@@ -202,6 +217,7 @@ type RpcGen struct {
 	Type    string
 	Package string
 	Methods []*Method
+	Imports []string
 	fileset *token.FileSet
 }
 

@@ -1,11 +1,11 @@
 // Copyright 2012 Alec Thomas
-// 
+//
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
-// 
+//
 //   http://www.apache.org/licenses/LICENSE-2.0
-// 
+//
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -69,6 +69,10 @@ type {{.Type}}Client struct {
 
 func New{{.Type}}Client(client {{.RpcType}}) *{{.Type}}Client {
 	return &{{.Type}}Client{client, "{{.Type}}"}
+}
+
+func (_c *{{$type}}Client) Close() error {
+	return _c.client.Close()
 }
 {{range .Methods}}
 func (_c *{{$type}}Client) {{.Name}}({{.Parameters | functionargs}}) ({{.Results | functionargs}}{{if .Results}}, {{end}}err error) {

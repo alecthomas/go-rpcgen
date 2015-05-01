@@ -18,15 +18,15 @@ func RegisterArithService(impl Arith) error {
 	return rpc.RegisterName("Arith", NewArithService(impl))
 }
 
-type pArithAddRequest struct {
+type ArithAddRequest struct {
 	A, B int
 }
 
-type pArithAddResponse struct {
+type ArithAddResponse struct {
 	Result int
 }
 
-func (s *ArithService) Add(request *pArithAddRequest, response *pArithAddResponse) (err error) {
+func (s *ArithService) Add(request *ArithAddRequest, response *ArithAddResponse) (err error) {
 	response.Result, err = s.impl.Add(request.A, request.B)
 	return
 }
@@ -45,8 +45,8 @@ func (_c *ArithClient) Close() error {
 }
 
 func (_c *ArithClient) Add(a, b int) (result int, err error) {
-	_request := &pArithAddRequest{a, b}
-	_response := &pArithAddResponse{}
+	_request := &ArithAddRequest{a, b}
+	_response := &ArithAddResponse{}
 	err = _c.client.Call(_c.service+".Add", _request, _response)
 	return _response.Result, err
 }

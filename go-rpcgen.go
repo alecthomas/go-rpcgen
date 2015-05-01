@@ -49,15 +49,15 @@ func Register{{.Type}}Service(impl {{.Type}}) error {
 	return rpc.RegisterName("{{.Type}}", New{{.Type}}Service(impl))
 }
 {{range .Methods}}
-type p{{$type}}{{.Name}}Request struct {
+type {{$type}}{{.Name}}Request struct {
 	{{.Parameters | publicfields}}
 }
 
-type p{{$type}}{{.Name}}Response struct {
+type {{$type}}{{.Name}}Response struct {
 	{{.Results | publicfields}}
 }
 
-func (s *{{$type}}Service) {{.Name}}(request *p{{$type}}{{.Name}}Request, response *p{{$type}}{{.Name}}Response) (err error) {
+func (s *{{$type}}Service) {{.Name}}(request *{{$type}}{{.Name}}Request, response *{{$type}}{{.Name}}Response) (err error) {
 	{{.Results | publicrefswithprefix "response."}}{{if .Results}}, {{end}}err = s.impl.{{.Name}}({{.Parameters | publicrefswithprefix "request."}})
 	return
 }
@@ -76,8 +76,8 @@ func (_c *{{$type}}Client) Close() error {
 }
 {{range .Methods}}
 func (_c *{{$type}}Client) {{.Name}}({{.Parameters | functionargs}}) ({{.Results | functionargs}}{{if .Results}}, {{end}}err error) {
-	_request := &p{{$type}}{{.Name}}Request{{"{"}}{{.Parameters | refswithprefix ""}}{{"}"}}
-	_response := &p{{$type}}{{.Name}}Response{}
+	_request := &{{$type}}{{.Name}}Request{{"{"}}{{.Parameters | refswithprefix ""}}{{"}"}}
+	_response := &{{$type}}{{.Name}}Response{}
 	err = _c.client.Call(_c.service + ".{{.Name}}", _request, _response)
 	return {{.Results | publicrefswithprefix "_response."}}{{if .Results}}, {{end}}err
 }

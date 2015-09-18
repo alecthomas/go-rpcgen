@@ -25,6 +25,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"reflect"
 	"strings"
 
 	"github.com/alecthomas/template"
@@ -298,25 +299,44 @@ func (r *InterfaceGen) Visit(node ast.Node) (w ast.Visitor) {
 	return r.RPCGen
 }
 
+func types(t ast.Expr) []string {
+	switch n := t.(type) {
+	case *ast.StarExpr:
+		return types(n.X)
+	case *ast.SelectorExpr:
+		return []string{strings.Join(append(types(n.X), types(n.Sel)...), ".")}
+	case *ast.MapType:
+		keys := types(n.Key)
+		return append(keys, types(n.Value)...)
+	case *ast.ArrayType:
+		return types(n.Elt)
+	case *ast.Ident:
+		return []string{n.Name}
+	default:
+		panic(fmt.Sprintf("unknown expression node %s %s\n", reflect.TypeOf(t), t))
+	}
+}
+
 func (r *InterfaceGen) formatType(fileset *token.FileSet, field *ast.Field) *Type {
 	var typeBuf bytes.Buffer
 	_ = printer.Fprint(&typeBuf, fileset, field.Type)
 	if len(field.Names) == 0 {
 		fatalNode(fileset, field, "RPC interface parameters and results must all be named")
 	}
-	typeName := typeBuf.String()
-	parts := strings.SplitN(typeName, ".", 2)
-	if len(parts) > 1 {
-		for _, imp := range r.CheckImports {
-			importPath := imp.Path.Value[1 : len(imp.Path.Value)-1]
-			if imp.Name != nil && imp.Name.String() == parts[0] {
-				r.Imports[fmt.Sprintf("%s %s", imp.Name, importPath)] = true
-			} else if filepath.Base(importPath) == parts[0] {
-				r.Imports[importPath] = true
+	for _, typeName := range types(field.Type) {
+		parts := strings.SplitN(typeName, ".", 2)
+		if len(parts) > 1 {
+			for _, imp := range r.CheckImports {
+				importPath := imp.Path.Value[1 : len(imp.Path.Value)-1]
+				if imp.Name != nil && imp.Name.String() == parts[0] {
+					r.Imports[fmt.Sprintf("%s %s", imp.Name, importPath)] = true
+				} else if filepath.Base(importPath) == parts[0] {
+					r.Imports[importPath] = true
+				}
 			}
 		}
 	}
-	t := &Type{Type: typeName}
+	t := &Type{Type: typeBuf.String()}
 	for _, n := range field.Names {
 		lowerName := n.Name
 		name := strings.ToUpper(lowerName[0:1]) + lowerName[1:]

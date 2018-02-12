@@ -292,6 +292,9 @@ func (r *InterfaceGen) VisitMethodList(n *ast.InterfaceType) {
 				fatalNode(r.fileset, m, "method %s must have error as last return value", method.Name)
 			}
 			r.Methods = append(r.Methods, method)
+		case *ast.Ident:
+			// Embedded interface
+			r.VisitMethodList(t.Obj.Decl.(*ast.TypeSpec).Type.(*ast.InterfaceType))
 		}
 	}
 }

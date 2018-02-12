@@ -1,4 +1,5 @@
 // Copyright 2012 Alec Thomas
+// Copyright (c) 2018 Samsung Electronics Co., Ltd All Rights Reserved
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -264,37 +265,41 @@ type InterfaceGen struct {
 	*RPCGen
 }
 
+func (r *InterfaceGen) VisitMethodList(n *ast.InterfaceType) {
+	for _, m := range n.Methods.List {
+		switch t := m.Type.(type) {
+		case *ast.FuncType:
+			method := &Method{
+				Name:       m.Names[0].Name,
+				Parameters: make([]*Type, 0),
+				Results:    make([]*Type, 0),
+			}
+			for _, v := range t.Params.List {
+				method.Parameters = append(method.Parameters, r.formatType(r.fileset, v))
+			}
+			hasError := false
+			if t.Results != nil {
+				for _, v := range t.Results.List {
+					result := r.formatType(r.fileset, v)
+					if result.Type == "error" {
+						hasError = true
+					} else {
+						method.Results = append(method.Results, result)
+					}
+				}
+			}
+			if !hasError {
+				fatalNode(r.fileset, m, "method %s must have error as last return value", method.Name)
+			}
+			r.Methods = append(r.Methods, method)
+		}
+	}
+}
+
 func (r *InterfaceGen) Visit(node ast.Node) (w ast.Visitor) {
 	switch n := node.(type) {
 	case *ast.InterfaceType:
-		for _, m := range n.Methods.List {
-			switch t := m.Type.(type) {
-			case *ast.FuncType:
-				method := &Method{
-					Name:       m.Names[0].Name,
-					Parameters: make([]*Type, 0),
-					Results:    make([]*Type, 0),
-				}
-				for _, v := range t.Params.List {
-					method.Parameters = append(method.Parameters, r.formatType(r.fileset, v))
-				}
-				hasError := false
-				if t.Results != nil {
-					for _, v := range t.Results.List {
-						result := r.formatType(r.fileset, v)
-						if result.Type == "error" {
-							hasError = true
-						} else {
-							method.Results = append(method.Results, result)
-						}
-					}
-				}
-				if !hasError {
-					fatalNode(r.fileset, m, "method %s must have error as last return value", method.Name)
-				}
-				r.Methods = append(r.Methods, method)
-			}
-		}
+		r.VisitMethodList(n)
 	}
 	return r.RPCGen
 }

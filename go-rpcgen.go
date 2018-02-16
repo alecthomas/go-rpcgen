@@ -40,48 +40,59 @@ import (
 {{range $key, $value := .Imports}}  {{$value}} "{{$key}}"
 {{end}})
 {{$type := .Type}}
+// {{.Type}}Service is generated service for {{.Type}} interface.
 type {{.Type}}Service struct {
 	impl {{.Type}}
 }
 
+// New{{.Type}}Service creates a new {{.Type}}Service instance.
 func New{{.Type}}Service(impl {{.Type}}) *{{.Type}}Service {
 	return &{{.Type}}Service{impl}
 }
 
+// Register{{.Type}}Service registers impl in server.
 func Register{{.Type}}Service(server *rpc.Server, impl {{.Type}}) error {
 	return server.RegisterName("{{.Service}}", New{{.Type}}Service(impl))
 }
 {{range .Methods}}
+// {{$type}}{{.Name}}Request is a helper structure for {{.Name}} method.
 type {{$type}}{{.Name}}Request struct {
 	{{.Parameters | publicfields}}
 }
 
+// {{$type}}{{.Name}}Response is a helper structure for {{.Name}} method.
 type {{$type}}{{.Name}}Response struct {
 	{{.Results | publicfields}}
 }
 
+// {{.Name}} is RPC implementation of {{.Name}} calling it.
 func (s *{{$type}}Service) {{.Name}}(request *{{$type}}{{.Name}}Request, response *{{$type}}{{.Name}}Response) (err error) {
 	{{.Results | publicrefswithprefix "response."}}{{if .Results}}, {{end}}err = s.impl.{{.Name}}({{.Parameters | publicrefswithprefix "request."}})
 	return
 }
 {{end}}
+// {{.Type}}Client is generated client for {{.Type}} interface.
 type {{.Type}}Client struct {
 	client {{.RPCType}}
 }
 
+// Dial{{.Type}}Client connects to addr and creates a new {{.Type}}Client instance.
 func Dial{{.Type}}Client(addr string) (*{{.Type}}Client, error) {
 	client, err := rpc.Dial("tcp", addr)
 	return &{{.Type}}Client{client}, err
 }
 
+// New{{.Type}}Client creates a new {{.Type}}Client instance.
 func New{{.Type}}Client(client {{.RPCType}}) *{{.Type}}Client {
 	return &{{.Type}}Client{client}
 }
 
+// Close terminates the connection.
 func (_c *{{$type}}Client) Close() error {
 	return _c.client.Close()
 }
 {{range .Methods}}
+// {{.Name}} is part of implementation of {{$type}} calling corresponding method on RPC server.
 func (_c *{{$type}}Client) {{.Name}}({{.Parameters | functionargs}}) ({{.Results | functionargs}}{{if .Results}}, {{end}}err error) {
 	_request := &{{$type}}{{.Name}}Request{{"{"}}{{.Parameters | refswithprefix ""}}{{"}"}}
 	_response := &{{$type}}{{.Name}}Response{}

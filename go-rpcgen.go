@@ -336,6 +336,8 @@ func types(t ast.Expr) []string {
 		return types(n.Elt)
 	case *ast.Ident:
 		return []string{n.Name}
+	case *ast.Ellipsis:
+		return types(n.Elt)
 	default:
 		panic(fmt.Sprintf("unknown expression node %s %s\n", reflect.TypeOf(t), t))
 	}

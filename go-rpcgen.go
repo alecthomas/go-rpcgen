@@ -177,7 +177,7 @@ func main() {
 		Package: *packageFlag,
 		Imports: imports,
 		fileset: fileset,
-		Http: *httpFlag,
+		Http:    *httpFlag,
 	}
 	ast.Walk(gen, f)
 	funcs := map[string]interface{}{
@@ -263,7 +263,7 @@ type RPCGen struct {
 	RPCType      string
 	fileset      *token.FileSet
 	CheckImports []*ast.ImportSpec
-	Http bool
+	Http         bool
 }
 
 func (r *RPCGen) Visit(node ast.Node) (w ast.Visitor) {

@@ -78,7 +78,7 @@ type {{.Type}}Client struct {
 
 // Dial{{.Type}}Client connects to addr and creates a new {{.Type}}Client instance.
 func Dial{{.Type}}Client(addr string) (*{{.Type}}Client, error) {
-	client, err := rpc.Dial("tcp", addr)
+	client, err := rpc.Dial{{if .Http}}HTTP{{end}}("tcp", addr)
 	return &{{.Type}}Client{client}, err
 }
 
@@ -131,6 +131,7 @@ var importsFlag = flag.String("imports", "net/rpc", "list of imports to add")
 var packageFlag = flag.String("package", "", "package to export under")
 var serviceName = flag.String("service", "", "service name to use (defaults to type name)")
 var rpcClientTypeFlag = flag.String("rpc_client_type", "*rpc.Client", "type to use for RPC client interfaces")
+var httpFlag = flag.Bool("http", false, "generate http client")
 
 func main() {
 	flag.Usage = func() {
@@ -176,6 +177,7 @@ func main() {
 		Package: *packageFlag,
 		Imports: imports,
 		fileset: fileset,
+		Http:    *httpFlag,
 	}
 	ast.Walk(gen, f)
 	funcs := map[string]interface{}{
@@ -261,6 +263,7 @@ type RPCGen struct {
 	RPCType      string
 	fileset      *token.FileSet
 	CheckImports []*ast.ImportSpec
+	Http         bool
 }
 
 func (r *RPCGen) Visit(node ast.Node) (w ast.Visitor) {
